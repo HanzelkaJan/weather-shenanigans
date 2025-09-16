@@ -28,6 +28,7 @@ public class WeatherChecker
     {
         using (var context = new MyDbContext())
         {
+            context.Database.EnsureCreated();
             WeatherObservation entry = await GetObservation(token);
 
             context.WeatherObservation.Add(entry);
