@@ -52,14 +52,10 @@ public class WeatherChecker
         try
         {
             HttpClient client = new();
-            using HttpResponseMessage response = await client.GetAsync(Source, token);
-            //WebRequest request = WebRequest.Create(Source);
-            //WebResponse response = request.GetResponse();
-            //StreamReader reader = new StreamReader(response.GetResponseStream());
+            using Stream response = await client.GetStreamAsync(Source, token);
             XmlSerializer serializer = new XmlSerializer(typeof(Wario));
             Wario wario = new Wario();
-            wario = (Wario)serializer.Deserialize(response.Content.ReadAsStream(token));
-            //response.Close();
+            wario = (Wario)serializer.Deserialize(response);
             firstTime = false;
             observation.Json = JsonSerializer.Serialize(wario);
         }

@@ -12,7 +12,7 @@ public class MyDbContext : DbContext
         string dbName = "TestDB.db";
         string path = Path.Combine(folder, dbName);
         optionsBuilder.UseSqlite($"data source={path}");
-        Console.WriteLine(path);
+        //Console.WriteLine(path);
         //optionsBuilder.UseInMemoryDatabase("DummyDb");
     }
 }
