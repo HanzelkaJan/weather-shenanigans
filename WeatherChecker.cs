@@ -15,10 +15,10 @@ public class WeatherChecker
         this.Source = source;
     }
 
-    public async void CheckWeatherPeriodically(int minutes)
+    public async Task CheckWeatherPeriodically(int minutes, CancellationToken token)
     {
         using PeriodicTimer timer = new(TimeSpan.FromMinutes(minutes));
-        while (await timer.WaitForNextTickAsync())
+        while (await timer.WaitForNextTickAsync() && !token.IsCancellationRequested)
         {
             CheckWeather();
         }
@@ -29,15 +29,8 @@ public class WeatherChecker
         using (var context = new MyDbContext())
         {
             WeatherObservation entry = GetObservation();
-            try
-            {
-                entry.Id = context.DbEntries.Max(p => p.Id)+1;
-            }
-            catch (Exception e)
-            {
-                entry.Id = 1;
-            }
-            context.DbEntries.Add(entry);
+
+            context.WeatherObservation.Add(entry);
             context.SaveChanges();
         }
     }
@@ -66,7 +59,7 @@ public class WeatherChecker
             wario = (Wario)serializer.Deserialize(reader);
             response.Close();
             firstTime = false;
-            observation.Json = ConvertToJson(wario);
+            observation.Json = JsonSerializer.Serialize(wario);
         }
         catch (Exception e)
         {
@@ -83,13 +76,6 @@ public class WeatherChecker
         observation.DlTime = DateTime.Now;
         return observation;
     }
-
-    public string ConvertToJson(Wario input)
-    {
-        string json = JsonSerializer.Serialize(input);
-        return json;
-    }
-
     
     //Checks whether or not the program launched with the correct address as to not fill the database with failed attempts
     private WeatherObservation FirstTimeCheck()
@@ -104,6 +90,7 @@ public class WeatherChecker
                 Source = Console.ReadLine();
                 return GetObservation();
             }
+
             if (answer.Contains('y'))
             {
                 firstTime = false;
@@ -111,14 +98,4 @@ public class WeatherChecker
             }
         }
     }
-    public class MyDbContext : DbContext
-    {
-        public DbSet<WeatherObservation> DbEntries { get; set; }
-
-        protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-        {
-            optionsBuilder.UseInMemoryDatabase("DummyDb");
-        }
-    }
-    
 }
