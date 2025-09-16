@@ -1,7 +1,7 @@
 using System.Net;
 using System.Text.Json;
+using System.Xml;
 using System.Xml.Serialization;
-using Microsoft.EntityFrameworkCore;
 
 namespace WeatherShenanigans;
 
@@ -20,15 +20,15 @@ public class WeatherChecker
         using PeriodicTimer timer = new(TimeSpan.FromMinutes(minutes));
         while (await timer.WaitForNextTickAsync() && !token.IsCancellationRequested)
         {
-            CheckWeather();
+            CheckWeather(token);
         }
     }
 
-    public void CheckWeather()
+    public async void CheckWeather(CancellationToken token)
     {
         using (var context = new MyDbContext())
         {
-            WeatherObservation entry = GetObservation();
+            WeatherObservation entry = await GetObservation(token);
 
             context.WeatherObservation.Add(entry);
             context.SaveChanges();
@@ -46,18 +46,20 @@ public class WeatherChecker
     }
 */
 
-    public WeatherObservation GetObservation()
+    public async Task<WeatherObservation> GetObservation(CancellationToken token)
     {
         WeatherObservation observation = new WeatherObservation();
         try
         {
-            WebRequest request = WebRequest.Create(Source);
-            WebResponse response = request.GetResponse();
-            StreamReader reader = new StreamReader(response.GetResponseStream());
+            HttpClient client = new();
+            using HttpResponseMessage response = await client.GetAsync(Source, token);
+            //WebRequest request = WebRequest.Create(Source);
+            //WebResponse response = request.GetResponse();
+            //StreamReader reader = new StreamReader(response.GetResponseStream());
             XmlSerializer serializer = new XmlSerializer(typeof(Wario));
             Wario wario = new Wario();
-            wario = (Wario)serializer.Deserialize(reader);
-            response.Close();
+            wario = (Wario)serializer.Deserialize(response.Content.ReadAsStream());
+            //response.Close();
             firstTime = false;
             observation.Json = JsonSerializer.Serialize(wario);
         }
@@ -66,7 +68,7 @@ public class WeatherChecker
             //Console.WriteLine(DateTime.Now + " --- " + e.Message);
             if (firstTime)
             {
-                return FirstTimeCheck();
+                return await FirstTimeCheck(token);
             }
             else
             {
@@ -78,7 +80,7 @@ public class WeatherChecker
     }
     
     //Checks whether or not the program launched with the correct address as to not fill the database with failed attempts
-    private WeatherObservation FirstTimeCheck()
+    private async Task<WeatherObservation> FirstTimeCheck(CancellationToken token)
     {
         while (true)
         {
@@ -88,13 +90,13 @@ public class WeatherChecker
             {
                 Console.WriteLine("Please specify a new address:");
                 Source = Console.ReadLine();
-                return GetObservation();
+                return await GetObservation(token);
             }
 
             if (answer.Contains('y'))
             {
                 firstTime = false;
-                return GetObservation();
+                return await GetObservation(token);
             }
         }
     }

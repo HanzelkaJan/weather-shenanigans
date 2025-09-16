@@ -10,8 +10,8 @@ class Program
         var tokenSource = new CancellationTokenSource();
         var token = tokenSource.Token;
         
-        checker.CheckWeather();
-        Console.CancelKeyPress += (_, ea) =>
+        checker.CheckWeather(token);
+        Console.CancelKeyPress += (_, _) =>
         {
             Console.WriteLine("Shutting down WeatherChecker");
             tokenSource.Cancel();
