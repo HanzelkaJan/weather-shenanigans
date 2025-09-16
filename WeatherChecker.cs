@@ -58,7 +58,7 @@ public class WeatherChecker
             //StreamReader reader = new StreamReader(response.GetResponseStream());
             XmlSerializer serializer = new XmlSerializer(typeof(Wario));
             Wario wario = new Wario();
-            wario = (Wario)serializer.Deserialize(response.Content.ReadAsStream());
+            wario = (Wario)serializer.Deserialize(response.Content.ReadAsStream(token));
             //response.Close();
             firstTime = false;
             observation.Json = JsonSerializer.Serialize(wario);
